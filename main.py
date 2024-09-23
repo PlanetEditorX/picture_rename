@@ -26,7 +26,7 @@ def get_exif_data(path, type = 0):
             media_info = MediaInfo.parse(path)
             # 遍历所有轨道，寻找视频轨道的拍摄日期
             for track in media_info.tracks:
-                if track.track_type == 'Video':
+                if track.track_type in ['General', 'Video']:
                     # 尝试获取编码日期，这可能与拍摄日期相关
                     encoded_date = getattr(track, 'encoded_date', None)
                     if encoded_date:
