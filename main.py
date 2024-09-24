@@ -46,6 +46,8 @@ def get_exif_data(path, type = 0):
                         return datetime.strptime(encoded_date, '%Y-%m-%d %H:%M:%S UTC')
                     else:
                         print(f"视频文件 {path}拍摄日期未找到。")
+                        # 从创建时间和修改时间中查找最早的时间
+                        return find_last_time(track)
                     break
         else:
             with open(path, 'rb') as f:
@@ -66,6 +68,18 @@ def get_exif_data(path, type = 0):
         print(f"Error: {e}")
         return None
 
+def find_last_time(track):
+    creation_date = getattr(track, 'file_creation_date', None)
+    modification_date = getattr(track, 'file_last_modification_date', None)
+    if creation_date:
+        creation_date = datetime.strptime(creation_date, '%Y-%m-%d %H:%M:%S.%f UTC')
+    if modification_date:
+        modification_date = datetime.strptime(modification_date, '%Y-%m-%d %H:%M:%S.%f UTC')
+
+    if creation_date.year > modification_date.year:
+        return modification_date
+
+    return creation_date
 
 def read_heic_exif(heic_path):
     # 打开 HEIC 文件
