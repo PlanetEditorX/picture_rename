@@ -56,11 +56,10 @@ def get_exif_data(path, type = 0):
                     DateTimeOriginal = read_tiff_exif(path)
                 else:
                     DateTimeOriginal = read_image_exif(path)
-
                 if DateTimeOriginal:
                     return datetime.strptime(DateTimeOriginal, '%Y:%m:%d %H:%M:%S')
                 else:
-                    return None
+                    return datetime.now()
     except Exception as e:
         print(f"Error: {e}")
         return None
@@ -79,14 +78,18 @@ def read_heic_exif(heic_path):
         return "No EXIF data found."
 
 def read_image_exif(image_path):
-    image = Image.open(image_path)
-    exif_data = {
-                # 对于 image._getexif() 返回的字典中的每个键值对，如果键在 TAGS 字典中，并且对应的标签名是 'DateTimeOriginal'，则将这个键值对添加到新字典中。最终，这个新字典将只包含原始拍摄日期时间的键值对。
-                TAGS[key]: value
-                for key, value in image._getexif().items()
-                if key in TAGS and TAGS[key] == 'DateTimeOriginal'
-            }
-    return exif_data.get('DateTimeOriginal', 'No拍摄日期信息')
+    try:
+        image = Image.open(image_path)
+        exif_data = {
+                    # 对于 image._getexif() 返回的字典中的每个键值对，如果键在 TAGS 字典中，并且对应的标签名是 'DateTimeOriginal'，则将这个键值对添加到新字典中。最终，这个新字典将只包含原始拍摄日期时间的键值对。
+                    TAGS[key]: value
+                    for key, value in image._getexif().items()
+                    if key in TAGS and TAGS[key] == 'DateTimeOriginal'
+                }
+        return exif_data.get('DateTimeOriginal', None)
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
 
 # DNG格式照片
 def read_tiff_exif(image_path):
@@ -167,4 +170,4 @@ if __name__ == "__main__":
                 # 设置文件的创建日期
                 win32file.SetFileTime(handle, file_time, file_time, file_time)
             else:
-                print("无拍摄日期")
+                print(f"{image_path}无拍摄日期")
