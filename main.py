@@ -39,8 +39,10 @@ def get_exif_data(path, type = 0):
                 if track.track_type in ['General', 'Video']:
                     # 尝试获取编码日期，这可能与拍摄日期相关
                     encoded_date = getattr(track, 'encoded_date', None)
+                    if not encoded_date:
+                        encoded_date = getattr(track, 'tagged_date', None)
                     if encoded_date:
-                        print(f"视频文件 {path} 的参数Encoded date (可能表示拍摄日期): {encoded_date}")
+                        print(f"视频文件 {path} 读取到的拍摄日期为: {encoded_date}")
                         return datetime.strptime(encoded_date, '%Y-%m-%d %H:%M:%S UTC')
                     else:
                         print("拍摄日期未找到。")
