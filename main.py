@@ -87,9 +87,9 @@ if __name__ == "__main__":
             if time_obj:
                 # ios目录格式，获取目录标识的时间
                 parent_name = file.parent.name
-                parent_year = int(parent_name[:4])
-                parent_month = int(parent_name[4:6])
                 if re.match(r'^\d{6}\_\_$', parent_name):
+                    parent_year = int(parent_name[:4])
+                    parent_month = int(parent_name[4:6])
                     # 当拍摄时间大于所在目录时，为照片的数据在移动过程中错误，修改年份和月份
                     if time_obj.year > parent_year:
                         time_obj = datetime(parent_year, parent_month, time_obj.day, time_obj.hour, time_obj.minute, time_obj.second)
@@ -106,8 +106,6 @@ if __name__ == "__main__":
                 timestamp = time_obj.timestamp()
                 # 将datetime对象转换为pywintypes.Time对象
                 file_time = pywintypes.Time(timestamp)
-                # # 设置新的修改时间为指定的时间戳
-                # os.utime(new_path, (timestamp, timestamp))
                 # 获取文件的句柄
                 handle = win32file.CreateFile(
                     new_path,
