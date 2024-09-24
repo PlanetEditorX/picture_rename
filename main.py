@@ -1,11 +1,15 @@
 import sys
 import os
+import io
 import re
 import win32file
 import win32con
 import pywintypes
 import piexif
 import pyexiv2
+import whatimage
+import pillow_heif
+import exifread
 from datetime import datetime,timedelta
 from pathlib import Path
 from PIL import Image
@@ -17,7 +21,13 @@ from pymediainfo import MediaInfo
 # pip install piexif
 # pip install pyexiv2
 # pip install pymediainfo
+# pip install pillow_heif
+# pip install whatimage
+# pip install exifread
 
+
+# 注册 HEIC 文件打开器,让Pillow 库就能够识别和打开 HEIC 格式的文件
+pillow_heif.register_heif_opener()
 # type: 0为图片,1为视频
 def get_exif_data(path, type = 0):
     try:
@@ -36,17 +46,58 @@ def get_exif_data(path, type = 0):
                         print("拍摄日期未找到。")
                     break
         else:
-            image = Image.open(path)
-            exif_data = {
+            with open(path, 'rb') as f:
+                file_data = f.read()
+                # 判断照片格式
+                fmt = whatimage.identify_image(file_data)
+                if fmt in ['heic']:
+                    DateTimeOriginal = read_heic_exif(path)
+                elif fmt in ['tiff']:
+                    DateTimeOriginal = read_tiff_exif(path)
+                else:
+                    DateTimeOriginal = read_image_exif(path)
+
+                if DateTimeOriginal:
+                    return datetime.strptime(DateTimeOriginal, '%Y:%m:%d %H:%M:%S')
+                else:
+                    return None
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+
+def read_heic_exif(heic_path):
+    # 打开 HEIC 文件
+    image = Image.open(heic_path)
+    exif_data = image.info["exif"]
+    if exif_data:
+        fstream = io.BytesIO(exif_data[6:])
+        exifdata = exifread.process_file(fstream,details=False)
+        imageDateTime = str(exifdata.get("Image DateTime"))
+        return imageDateTime
+    else:
+        return "No EXIF data found."
+
+def read_image_exif(image_path):
+    image = Image.open(image_path)
+    exif_data = {
                 # 对于 image._getexif() 返回的字典中的每个键值对，如果键在 TAGS 字典中，并且对应的标签名是 'DateTimeOriginal'，则将这个键值对添加到新字典中。最终，这个新字典将只包含原始拍摄日期时间的键值对。
                 TAGS[key]: value
                 for key, value in image._getexif().items()
                 if key in TAGS and TAGS[key] == 'DateTimeOriginal'
             }
-            return datetime.strptime(exif_data.get('DateTimeOriginal', 'No拍摄日期信息'), '%Y:%m:%d %H:%M:%S')
-    except Exception as e:
-        print(f"Error: {e}")
-        return None
+    return exif_data.get('DateTimeOriginal', 'No拍摄日期信息')
+
+# DNG格式照片
+def read_tiff_exif(image_path):
+    image = Image.open(image_path)
+    # TAGS：用于映射图像文件的0th IFD（Image File Directory）中的EXIF标签。
+    exif_data = {
+                TAGS[key]: value
+                for key, value in image.tag.items()
+                if key in TAGS and TAGS[key] == 'DateTime'
+            }
+    return exif_data.get('DateTime', 'No拍摄日期信息')[0]
 
 def set_exif_data(image_path, new_time):
     try:
@@ -75,14 +126,11 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         path = Path(sys.argv[1])
         files = [file for file in path.rglob("*.*")]
-        # # 测试
-        # path = Path("C:\\Users\\DearX\\Documents\\Github\\picture_rename\\test")
-        # files = [file for file in path.rglob("*.*")]
         for file in files:
             image_path = file._raw_paths[0]
-            if file.suffix in ['.JPG']:
+            if file.suffix in ['.JPG', '.PNG', '.DNG', '.HEIC']:
                 time_obj = get_exif_data(image_path)
-            elif file.suffix in ['.MP4']:
+            elif file.suffix in ['.MP4', '.MOV']:
                 time_obj = get_exif_data(image_path, 1)
             if time_obj:
                 # ios目录格式，获取目录标识的时间
