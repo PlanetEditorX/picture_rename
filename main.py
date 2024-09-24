@@ -133,9 +133,10 @@ if __name__ == "__main__":
         files = [file for file in path.rglob("*.*")]
         for file in files:
             image_path = file._raw_paths[0]
-            if file.suffix in ['.JPG', '.PNG', '.DNG', '.HEIC']:
+            file_suffix = file.suffix.upper()
+            if file_suffix in ['.JPG', '.PNG', '.DNG', '.HEIC']:
                 time_obj = get_exif_data(image_path)
-            elif file.suffix in ['.MP4', '.MOV']:
+            elif file_suffix in ['.MP4', '.MOV']:
                 time_obj = get_exif_data(image_path, 1)
             if time_obj:
                 # ios目录格式，获取目录标识的时间
