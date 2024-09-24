@@ -124,7 +124,7 @@ def read_image_exif(image_path):
                 }
         return exif_data.get('DateTimeOriginal', None)
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Warning: {image_path}未获取到exif数据")
         return None
 
 # DNG格式照片
@@ -179,33 +179,35 @@ if __name__ == "__main__":
                 if re.match(r'^\d{6}\_\_$', parent_name):
                     parent_year = int(parent_name[:4])
                     parent_month = int(parent_name[4:6])
-                    # 当拍摄时间大于所在目录时，为照片的数据在移动过程中错误，修改年份和月份
-                    if time_obj.year > parent_year:
+                    # 当拍摄时间年月不等于所在目录时，为照片的数据在移动过程中错误，修改年份和月份
+                    if time_obj.year != parent_year or time_obj.month != parent_month:
                         time_obj = datetime(parent_year, parent_month, time_obj.day, time_obj.hour, time_obj.minute, time_obj.second)
-                        set_exif_data(image_path, time_obj)
+                        if file_suffix in ['.JPG', '.PNG', '.DNG']:
+                            set_exif_data(image_path, time_obj)
                 formatted_time = time_obj.strftime('%Y_%m_%d_%H_%M_%S')
                 image_parent_path = file.parent._raw_paths[0]
                 new_path = f"{image_parent_path}\\{formatted_time}_{file.name}"
                 # 照片不为年_月_日_时_分_才更名
                 if re.match(r'^\d{4}\_(\d{2}_){5}', file.name):
-                    new_path = image_path
+                    # new_path = image_path
+                    pass
                 else:
                     os.rename(image_path, f"{image_parent_path}\\{formatted_time}_{file.name}")
-                # 将time_obj对象转换为时间戳
-                timestamp = time_obj.timestamp()
-                # 将datetime对象转换为pywintypes.Time对象
-                file_time = pywintypes.Time(timestamp)
-                # 获取文件的句柄
-                handle = win32file.CreateFile(
-                    new_path,
-                    win32file.GENERIC_WRITE,
-                    0,
-                    None,
-                    win32con.OPEN_EXISTING,
-                    0,
-                    None
-                )
-                # 设置文件的创建日期
-                win32file.SetFileTime(handle, file_time, file_time, file_time)
+                    # 将time_obj对象转换为时间戳
+                    timestamp = time_obj.timestamp()
+                    # 将datetime对象转换为pywintypes.Time对象
+                    file_time = pywintypes.Time(timestamp)
+                    # 获取文件的句柄
+                    handle = win32file.CreateFile(
+                        new_path,
+                        win32file.GENERIC_WRITE,
+                        0,
+                        None,
+                        win32con.OPEN_EXISTING,
+                        0,
+                        None
+                    )
+                    # 设置文件的创建日期
+                    win32file.SetFileTime(handle, file_time, file_time, file_time)
             else:
                 print(f"{image_path}无拍摄日期")
