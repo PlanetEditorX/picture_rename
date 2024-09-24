@@ -45,7 +45,7 @@ def get_exif_data(path, type = 0):
                         print(f"视频文件 {path} 读取到的拍摄日期为: {encoded_date}")
                         return datetime.strptime(encoded_date, '%Y-%m-%d %H:%M:%S UTC')
                     else:
-                        print("拍摄日期未找到。")
+                        print(f"视频文件 {path}拍摄日期未找到。")
                     break
         else:
             with open(path, 'rb') as f:
