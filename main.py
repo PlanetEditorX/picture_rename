@@ -25,7 +25,6 @@ from pymediainfo import MediaInfo
 # pip install whatimage
 # pip install exifread
 
-
 # 注册 HEIC 文件打开器,让Pillow 库就能够识别和打开 HEIC 格式的文件
 pillow_heif.register_heif_opener()
 # type: 0为图片,1为视频
@@ -45,7 +44,7 @@ def get_exif_data(path, type = 0):
                         print(f"视频文件 {path} 读取到的拍摄日期为: {encoded_date}")
                         return datetime.strptime(encoded_date, '%Y-%m-%d %H:%M:%S UTC')
                     else:
-                        print(f"视频文件 {path}拍摄日期未找到。")
+                        print(f"视频文件 {path}拍摄日期未找到，将按照创建日期和修改日期中最早的时间作为拍摄日期。")
                         # 从创建时间和修改时间中查找最早的时间
                         return find_last_time(track)
                     break
@@ -63,11 +62,12 @@ def get_exif_data(path, type = 0):
                 if DateTimeOriginal:
                     return datetime.strptime(DateTimeOriginal, '%Y:%m:%d %H:%M:%S')
                 else:
-                    return datetime.now()
+                    return find_last_time_file(path)
     except Exception as e:
         print(f"Error: {e}")
         return None
 
+# 查找视频最早时间
 def find_last_time(track):
     creation_date = getattr(track, 'file_creation_date', None)
     modification_date = getattr(track, 'file_last_modification_date', None)
@@ -75,12 +75,31 @@ def find_last_time(track):
         creation_date = datetime.strptime(creation_date, '%Y-%m-%d %H:%M:%S.%f UTC')
     if modification_date:
         modification_date = datetime.strptime(modification_date, '%Y-%m-%d %H:%M:%S.%f UTC')
-
-    if creation_date.year > modification_date.year:
+    if creation_date > modification_date:
         return modification_date
-
     return creation_date
 
+# 查找文件最早时间
+def find_last_time_file(file_path):
+    try:
+        # 获取文件状态信息
+        file_stat = os.stat(file_path)
+        # 获取文件的最后修改时间
+        mod_time = datetime.fromtimestamp(file_stat.st_mtime)
+        # 在Windows上，可以尝试获取文件的创建时间
+        if os.name == 'nt':
+            creation_time = datetime.fromtimestamp(file_stat.st_ctime)
+        else:
+            # 在Unix-like系统上，st_ctime通常表示状态更改时间
+            creation_time = "Creation time is not available on this platform"
+        if mod_time > creation_time:
+            return creation_time
+        return mod_time
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+# 读取heic照片信息
 def read_heic_exif(heic_path):
     # 打开 HEIC 文件
     image = Image.open(heic_path)
@@ -93,6 +112,7 @@ def read_heic_exif(heic_path):
     else:
         return "No EXIF data found."
 
+# 读取普通照片信息
 def read_image_exif(image_path):
     try:
         image = Image.open(image_path)
@@ -118,6 +138,7 @@ def read_tiff_exif(image_path):
             }
     return exif_data.get('DateTime', 'No拍摄日期信息')[0]
 
+# 修改照片exif
 def set_exif_data(image_path, new_time):
     try:
         # 读取图片的EXIF数据
