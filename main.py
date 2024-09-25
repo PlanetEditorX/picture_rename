@@ -25,14 +25,22 @@ from pymediainfo import MediaInfo
 # pip install whatimage
 # pip install exifread
 
+# 实况照片字典
+HEIC_DICT = {}
+
 # 注册 HEIC 文件打开器,让Pillow 库就能够识别和打开 HEIC 格式的文件
 pillow_heif.register_heif_opener()
+
 # type: 0为图片,1为视频
 def get_exif_data(path, type = 0):
+    global HEIC_DICT
     try:
         if type:
             # 解析视频文件
             media_info = MediaInfo.parse(path)
+            file_name = Path(path).stem
+            if file_name in HEIC_DICT:
+                return HEIC_DICT[file_name]
             # 遍历所有轨道，寻找视频轨道的拍摄日期
             for track in media_info.tracks:
                 if track.track_type in ['General', 'Video']:
@@ -55,6 +63,9 @@ def get_exif_data(path, type = 0):
                 fmt = whatimage.identify_image(file_data)
                 if fmt in ['heic']:
                     DateTimeOriginal = read_heic_exif(path)
+                    # 存入heic
+                    file_name = Path(path).stem
+                    HEIC_DICT[file_name] = datetime.strptime(DateTimeOriginal, '%Y:%m:%d %H:%M:%S')
                 elif fmt in ['tiff']:
                     DateTimeOriginal = read_tiff_exif(path)
                 else:
