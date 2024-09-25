@@ -27,6 +27,8 @@ from pymediainfo import MediaInfo
 
 # 实况照片字典
 HEIC_DICT = {}
+# 缺失exif数据的图片
+EXIF_EMPTY = []
 
 # 注册 HEIC 文件打开器,让Pillow 库就能够识别和打开 HEIC 格式的文件
 pillow_heif.register_heif_opener()
@@ -135,7 +137,9 @@ def read_image_exif(image_path):
                 }
         return exif_data.get('DateTimeOriginal', None)
     except Exception as e:
+        global EXIF_EMPTY
         print(f"Warning: {image_path}未获取到exif数据")
+        EXIF_EMPTY.append(image_path)
         return None
 
 # DNG格式照片
@@ -190,8 +194,8 @@ if __name__ == "__main__":
                 if re.match(r'^\d{6}\_\_$', parent_name):
                     parent_year = int(parent_name[:4])
                     parent_month = int(parent_name[4:6])
-                    # 当拍摄时间年月不等于所在目录时，为照片的数据在移动过程中错误，修改年份和月份
-                    if time_obj.year != parent_year or time_obj.month != parent_month:
+                    # 当拍摄时间年月不等于所在目录时，为照片的数据在移动过程中错误，修改年份和月份，当缺失exif数据时添加
+                    if time_obj.year != parent_year or time_obj.month != parent_month or image_path in EXIF_EMPTY:
                         time_obj = datetime(parent_year, parent_month, time_obj.day, time_obj.hour, time_obj.minute, time_obj.second)
                         if file_suffix in ['.JPG', '.PNG', '.DNG']:
                             set_exif_data(image_path, time_obj)
