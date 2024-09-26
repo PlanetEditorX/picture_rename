@@ -146,7 +146,7 @@ def read_png_exif(heic_path):
 # 读取普通照片信息
 def read_image_exif(image_path):
     try:
-        image = Image.open(image_path)
+        image = PIL_Image.open(image_path)
         exif_data = {
                     # 对于 image._getexif() 返回的字典中的每个键值对，如果键在 TAGS 字典中，并且对应的标签名是 'DateTimeOriginal'，则将这个键值对添加到新字典中。最终，这个新字典将只包含原始拍摄日期时间的键值对。
                     TAGS[key]: value
