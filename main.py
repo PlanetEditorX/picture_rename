@@ -297,8 +297,8 @@ if __name__ == "__main__":
                         heic_path = f"{image_parent_path}\\{heic_name}"
                         mov_path = f"{image_parent_path}\\{mov_name}"
                         if re.match(r'^\d{6}\_\_$', parent_name):
-                            move_path = image_parent_path.replace(parent_name, "实况照片")
                             if os.path.isfile(heic_path) and os.path.isfile(mov_path):
+                                move_path = f"{image_parent_path.replace(parent_name, "实况照片")}\\{parent_name}"
                                 direct_path = Path(move_path)
                                 if not direct_path.is_dir():
                                     os.makedirs(direct_path, exist_ok=True)
