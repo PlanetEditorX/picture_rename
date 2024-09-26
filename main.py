@@ -6,7 +6,6 @@ import win32file
 import win32con
 import pywintypes
 import piexif
-import pyexiv2
 import whatimage
 import pillow_heif
 import exifread
@@ -15,6 +14,7 @@ from pathlib import Path
 from PIL import Image
 from PIL.ExifTags import TAGS
 from pymediainfo import MediaInfo
+from pyexiv2 import Image
 
 # pip3 install pywin32
 # pip install Pillow
@@ -70,6 +70,8 @@ def get_exif_data(path, type = 0):
                     HEIC_DICT[file_name] = datetime.strptime(DateTimeOriginal, '%Y:%m:%d %H:%M:%S')
                 elif fmt in ['tiff']:
                     DateTimeOriginal = read_tiff_exif(path)
+                elif fmt in ['png']:
+                    DateTimeOriginal = read_png_exif(path)
                 else:
                     DateTimeOriginal = read_image_exif(path)
                 if DateTimeOriginal:
@@ -119,11 +121,24 @@ def read_heic_exif(heic_path):
     exif_data = image.info["exif"]
     if exif_data:
         fstream = io.BytesIO(exif_data[6:])
-        exifdata = exifread.process_file(fstream,details=False)
+        exifdata = exifread.process_file(fstream, details=False)
         imageDateTime = str(exifdata.get("Image DateTime"))
         return imageDateTime
     else:
-        return "No EXIF data found."
+        print(f"{heic_path} No EXIF data found.")
+        return None
+
+# 读取png图片信息
+def read_png_exif(heic_path):
+    try:
+        img = Image(image_path)
+        load_exif = img.read_exif()
+        if load_exif:
+            return load_exif['Exif.Photo.DateTimeOriginal']
+        return None
+    except Exception as e:
+        print(f"Warning: {image_path}未获取到时间相关数据")
+        return None
 
 # 读取普通照片信息
 def read_image_exif(image_path):
@@ -177,6 +192,34 @@ def set_exif_data(image_path, new_time):
         print(f"Error: {e}")
         return None
 
+# 修改图片XML
+def set_XML_data(image_path, new_time):
+    try:
+        img = Image(image_path)
+        formatted_time = new_time.strftime('%Y:%m:%d %H:%M:%S')
+        # 用字典记录目标时间信息
+        exif_dict = {
+            'Exif.Image.DateTime': formatted_time,
+            'Exif.Photo.DateTimeOriginal': formatted_time,
+            'Exif.Photo.DateTimeDigitized': formatted_time
+        }
+        iptc_dict = {
+            'Iptc.Application2.DateCreated': formatted_time
+        }
+        xmp_dict = {
+            'Xmp.xmp.ModifyDate': formatted_time,
+            'Xmp.xmp.CreateDate': formatted_time,
+            'Xmp.xmp.MetadataDate': formatted_time,
+            'Xmp.photoshop.DateCreated': formatted_time
+        }
+        # 修改EXIF、IPTC、XMP信息
+        img.modify_exif(exif_dict)
+        img.modify_iptc(iptc_dict)
+        img.modify_xmp(xmp_dict)
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         path = Path(sys.argv[1])
@@ -197,8 +240,10 @@ if __name__ == "__main__":
                     # 当拍摄时间年月不等于所在目录时，为照片的数据在移动过程中错误，修改年份和月份，当缺失exif数据时添加
                     if time_obj.year != parent_year or time_obj.month != parent_month or image_path in EXIF_EMPTY:
                         time_obj = datetime(parent_year, parent_month, time_obj.day, time_obj.hour, time_obj.minute, time_obj.second)
-                        if file_suffix in ['.JPG', '.PNG', '.DNG']:
+                        if file_suffix in ['.JPG', '.DNG']:
                             set_exif_data(image_path, time_obj)
+                        elif file_suffix in ['.PNG']:
+                            set_XML_data(image_path, time_obj)
                 formatted_time = time_obj.strftime('%Y_%m_%d_%H_%M_%S')
                 image_parent_path = file.parent._raw_paths[0]
                 new_path = f"{image_parent_path}\\{formatted_time}_{file.name}"
