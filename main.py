@@ -9,9 +9,10 @@ import piexif
 import whatimage
 import pillow_heif
 import exifread
+import shutil
 from datetime import datetime,timedelta
 from pathlib import Path
-from PIL import Image
+from PIL import Image as PIL_Image
 from PIL.ExifTags import TAGS
 from pymediainfo import MediaInfo
 from pyexiv2 import Image
@@ -42,7 +43,7 @@ def get_exif_data(path, type = 0):
             media_info = MediaInfo.parse(path)
             file_name = Path(path).stem
             if file_name in HEIC_DICT:
-                return HEIC_DICT[file_name]
+                return HEIC_DICT[file_name]['date']
             # 遍历所有轨道，寻找视频轨道的拍摄日期
             for track in media_info.tracks:
                 if track.track_type in ['General', 'Video']:
@@ -67,7 +68,9 @@ def get_exif_data(path, type = 0):
                     DateTimeOriginal = read_heic_exif(path)
                     # 存入heic
                     file_name = Path(path).stem
-                    HEIC_DICT[file_name] = datetime.strptime(DateTimeOriginal, '%Y:%m:%d %H:%M:%S')
+                    HEIC_DICT[file_name] = {
+                        'date': datetime.strptime(DateTimeOriginal, '%Y:%m:%d %H:%M:%S')
+                    }
                 elif fmt in ['tiff']:
                     DateTimeOriginal = read_tiff_exif(path)
                 elif fmt in ['png']:
@@ -117,7 +120,7 @@ def find_last_time_file(file_path):
 # 读取heic照片信息
 def read_heic_exif(heic_path):
     # 打开 HEIC 文件
-    image = Image.open(heic_path)
+    image = PIL_Image.open(heic_path)
     exif_data = image.info["exif"]
     if exif_data:
         fstream = io.BytesIO(exif_data[6:])
@@ -159,7 +162,7 @@ def read_image_exif(image_path):
 
 # DNG格式照片
 def read_tiff_exif(image_path):
-    image = Image.open(image_path)
+    image = PIL_Image.open(image_path)
     # TAGS：用于映射图像文件的0th IFD（Image File Directory）中的EXIF标签。
     exif_data = {
                 TAGS[key]: value
@@ -226,6 +229,7 @@ if __name__ == "__main__":
         files = [file for file in path.rglob("*.*")]
         for file in files:
             image_path = file._raw_paths[0]
+            file_name = Path(image_path).stem
             file_suffix = file.suffix.upper()
             if file_suffix in ['.JPG', '.PNG', '.DNG', '.HEIC']:
                 time_obj = get_exif_data(image_path)
@@ -252,7 +256,15 @@ if __name__ == "__main__":
                     # new_path = image_path
                     pass
                 else:
-                    os.rename(image_path, f"{image_parent_path}\\{formatted_time}_{file.name}")
+                    new_image_name = f"{formatted_time}_{file.name}"
+                    new_image_path = f"{image_parent_path}\\{new_image_name}"
+                    os.rename(image_path, new_image_path)
+                    # 更新字典路径
+                    if file_name in HEIC_DICT:
+                        if file_suffix in ['.HEIC']:
+                            HEIC_DICT[file_name]['heic_name'] = new_image_name
+                        elif file_suffix in ['.MOV']:
+                            HEIC_DICT[file_name]['mov_name'] = new_image_name
                     # 将time_obj对象转换为时间戳
                     timestamp = time_obj.timestamp()
                     # 将datetime对象转换为pywintypes.Time对象
@@ -269,5 +281,28 @@ if __name__ == "__main__":
                     )
                     # 设置文件的创建日期
                     win32file.SetFileTime(handle, file_time, file_time, file_time)
+                    # 关闭文件
+                    win32file.CloseHandle(handle)
+
+                if file_name in HEIC_DICT and file_suffix in ['.MOV']:
+                    try:
+                        heic_name = HEIC_DICT[file_name]['heic_name']
+                        mov_name = HEIC_DICT[file_name]['mov_name']
+                        heic_path = f"{image_parent_path}\\{heic_name}"
+                        mov_path = f"{image_parent_path}\\{mov_name}"
+                        if re.match(r'^\d{6}\_\_$', parent_name):
+                            move_path = image_parent_path.replace(parent_name, "实况照片")
+                            if os.path.isfile(heic_path) and os.path.isfile(mov_path):
+                                direct_path = Path(move_path)
+                                if not direct_path.is_dir():
+                                    os.makedirs(direct_path, exist_ok=True)
+                                os.rename(heic_path, f"{move_path}\\{heic_name}")
+                                os.rename(mov_path, f"{move_path}\\{mov_name}")
+                                if not os.listdir(image_parent_path):
+                                    shutil.rmtree(image_parent_path)
+                                    print(f"空文件夹 {image_parent_path} 已被删除")
+                    except Exception as e:
+                        print(f"Error: {e}")
+                        print(f"移动{file_name}到新目录失败")
             else:
                 print(f"{image_path}无拍摄日期")
