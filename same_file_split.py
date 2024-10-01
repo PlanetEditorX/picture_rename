@@ -67,21 +67,52 @@ def move_file(folder_time, lists):
         return None
     return
 
+def print_progress(iteration, total, prefix='', suffix='', decimals=1, length=50, fill='█'):
+    """
+    在命令行中打印进度条
+    :param iteration: 当前迭代次数
+    :param total: 总迭代次数
+    :param prefix: 前缀字符串
+    :param suffix: 后缀字符串
+    :param decimals: 正数，显示的小数位数
+    :param length: 进度条的长度
+    :param fill: 填充字符
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filled_length = int(length * iteration // total)
+    bar = fill * filled_length + '-' * (length - filled_length)
+    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end='')
+    if iteration == total:
+        print()
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         path = Path(sys.argv[1])
         parent_path = path.parent._raw_paths[0]
         files = [file for file in path.rglob("*.*")]
+        index = 0  # 初始化计数器
+        total = len(files)
         for file in files:
             file_path = file._raw_paths[0]
             # 绝对地址
             absolute_path = os.path.abspath(file_path)
             filemd5 = get_file_md5(absolute_path)
             set_md5_dict(filemd5, absolute_path)
+            print_progress(index, total, prefix='正在计算文件MD5信息:', suffix='完成', decimals=2)
+            index += 1
+
+        print_progress(total, total, prefix='正在计算文件MD5信息:', suffix='完成', decimals=2)
 
         if MD5_DICT:
+            index = 0  # 初始化计数器
+            total = len(MD5_DICT)
             for key, value in MD5_DICT.items():
                 if len(value) > 1:
                     earliest_time = main.get_time_info(value)
                     move_file(earliest_time, value)
+                print_progress(index, total, prefix='正在移动重复文件:', suffix='完成', decimals=2)
+                index += 1
+            print_progress(total, total, prefix='正在移动重复文件:', suffix='完成', decimals=2)
+
+
 
