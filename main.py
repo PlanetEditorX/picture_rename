@@ -338,6 +338,6 @@ def get_time_info(lists):
         else:
             time_obj = find_earliest_time_file(file_path)
         # 存储相同文件中读取到的最早信息
-        if time_obj and earliest_time_obj > time_obj:
+        if time_obj and earliest_time_obj.timestamp() > time_obj.timestamp():
             earliest_time_obj = time_obj
     return earliest_time_obj
