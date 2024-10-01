@@ -18,15 +18,14 @@ from PIL.ExifTags import TAGS
 from pymediainfo import MediaInfo
 from pyexiv2 import Image
 
-# pip3 install pywin32
-# pip install Pillow
+# pip install pywin32
 # pip install piexif
-# pip install pyexiv2
-# pip install pymediainfo
-# pip install pillow_heif
 # pip install whatimage
+# pip install pillow_heif
 # pip install exifread
 # pip install pytz
+# pip install pymediainfo
+# pip install pyexiv2
 
 
 # 实况照片字典
@@ -74,7 +73,7 @@ def get_exif_data(path, type = 0):
                     else:
                         print(f"视频文件 {path}拍摄日期未找到，将按照创建日期和修改日期中最早的时间作为拍摄日期。")
                         # 从创建时间和修改时间中查找最早的时间
-                        return find_last_time(track)
+                        return find_earliest_time(track)
                     break
         else:
             with open(path, 'rb') as f:
@@ -97,15 +96,15 @@ def get_exif_data(path, type = 0):
                 if DateTimeOriginal:
                     return datetime.strptime(DateTimeOriginal, '%Y:%m:%d %H:%M:%S')
                 else:
-                    return find_last_time_file(path)
+                    return find_earliest_time_file(path)
     except Exception as e:
         print(f"Error: {e}")
         return None
 
 # 查找视频最早时间
-def find_last_time(track):
+def find_earliest_time(track):
     creation_date = getattr(track, 'file_creation_date', None)
-    modification_date = getattr(track, 'file_last_modification_date', None)
+    modification_date = getattr(track, 'file_earliest_modification_date', None)
     if creation_date:
         creation_date = datetime.strptime(creation_date, '%Y-%m-%d %H:%M:%S.%f UTC')
     if modification_date:
@@ -115,7 +114,7 @@ def find_last_time(track):
     return creation_date
 
 # 查找文件最早时间
-def find_last_time_file(file_path):
+def find_earliest_time_file(file_path):
     try:
         # 获取文件状态信息
         file_stat = os.stat(file_path)
@@ -323,3 +322,22 @@ if __name__ == "__main__":
                         print(f"移动{file_name}到新目录失败")
             else:
                 print(f"{image_path}无拍摄日期")
+
+# 外部调用，返回拍摄日期或最早日期
+def get_time_info(lists):
+    earliest_time_obj = datetime.now()
+    for file_path in lists:
+        file = Path(file_path)
+        file_name = file.stem
+        file_suffix = file.suffix.upper()
+        if file_suffix in ['.JPG', '.PNG', '.DNG', '.HEIC']:
+            time_obj = get_exif_data(file_path)
+        elif file_suffix in ['.MP4', '.MOV']:
+            time_obj = get_exif_data(file_path, 1)
+        # 非照片视频文件比较最早的时间
+        else:
+            time_obj = find_earliest_time_file(file_path)
+        # 存储相同文件中读取到的最早信息
+        if time_obj and earliest_time_obj > time_obj:
+            earliest_time_obj = time_obj
+    return earliest_time_obj
