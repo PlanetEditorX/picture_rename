@@ -10,6 +10,7 @@ import whatimage
 import pillow_heif
 import exifread
 import shutil
+import pytz
 from datetime import datetime,timedelta
 from pathlib import Path
 from PIL import Image as PIL_Image
@@ -25,6 +26,8 @@ from pyexiv2 import Image
 # pip install pillow_heif
 # pip install whatimage
 # pip install exifread
+# pip install pytz
+
 
 # 实况照片字典
 HEIC_DICT = {}
@@ -59,7 +62,15 @@ def get_exif_data(path, type = 0):
                         encoded_date = getattr(track, 'tagged_date', None)
                     if encoded_date:
                         print(f"视频文件 {path} 读取到的拍摄日期为: {encoded_date}")
-                        return datetime.strptime(encoded_date, '%Y-%m-%d %H:%M:%S UTC')
+                        # 设置UTC时区
+                        utc_tz = pytz.timezone('UTC')
+                        utc_time = datetime.strptime(encoded_date, '%Y-%m-%d %H:%M:%S UTC')
+                        # 将解析的时间与UTC时区关联
+                        utc_time = utc_tz.localize(utc_time)
+                        # 设置北京时间时区
+                        beijing_tz = pytz.timezone('Asia/Shanghai')
+                        # 将UTC时间转换为北京时间
+                        return utc_time.astimezone(beijing_tz)
                     else:
                         print(f"视频文件 {path}拍摄日期未找到，将按照创建日期和修改日期中最早的时间作为拍摄日期。")
                         # 从创建时间和修改时间中查找最早的时间
