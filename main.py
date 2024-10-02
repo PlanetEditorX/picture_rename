@@ -21,6 +21,7 @@ from pyexiv2 import Image
 # pip install pywin32
 # pip install piexif
 # pip install whatimage
+# pip install pillow
 # pip install pillow_heif
 # pip install exifread
 # pip install pytz
@@ -32,6 +33,8 @@ from pyexiv2 import Image
 HEIC_DICT = {}
 # 缺失exif数据的图片
 EXIF_EMPTY = []
+# 忽略的文件
+IGNORE_LIST = ['desktop.ini']
 
 # 注册 HEIC 文件打开器,让Pillow 库就能够识别和打开 HEIC 格式的文件
 pillow_heif.register_heif_opener()
@@ -281,12 +284,15 @@ def set_XML_data(image_path, new_time):
 # 计算指定目录下的文件数量
 def count_files(directory):
     """
-    计算指定目录下的文件数量
+    计算指定目录下的文件数量，去除忽略列表（如：desktop.ini）
     :param directory: 需要查询的目录地址
     """
     total_files = 0
     for root, dirs, files in os.walk(directory):
         total_files += len(files)
+        for file in files:
+            if file in IGNORE_LIST:
+                total_files -= 1
     return total_files
 
 # 删除数组的指定值
@@ -301,7 +307,7 @@ def remove_value(lst, value):
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         path = Path(sys.argv[1])
-        files = [file for file in path.rglob("*.*")]
+        files = [file for file in path.rglob("*.*") if file.name not in IGNORE_LIST]
         or_num = len(files)
         print(f"开始：该目录下共找到{or_num}个文件")
         path_list = []
@@ -408,7 +414,7 @@ if __name__ == "__main__":
         else:
             print("ERROR：操作完成后发现文件数量变动")
             print("正在查找丢失的源文件路径")
-            new_files = [file for file in path.rglob("*.*")]
+            new_files = [file for file in path.rglob("*.*") if file.name not in IGNORE_LIST]
             for file in new_files:
                 image_path = file._raw_paths[0]
                 path_list = remove_value(path_list, image_path)
