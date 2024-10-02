@@ -239,14 +239,37 @@ def set_XML_data(image_path, new_time):
         print(f"Error: {e}")
         return None
 
+def count_files(directory):
+    """
+    计算指定目录下的文件数量
+    :param directory: 需要查询的目录地址
+    """
+    total_files = 0
+    for root, dirs, files in os.walk(directory):
+        total_files += len(files)
+    return total_files
+
+def remove_value(lst, value):
+    """
+    删除数组的指定值
+    :param lst: 原始数组
+    :param value: 需要删除的值
+    """
+    return list(filter(lambda x: x != value, lst))
+
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         path = Path(sys.argv[1])
         files = [file for file in path.rglob("*.*")]
+        or_num = len(files)
+        print(f"开始：该目录下共找到{or_num}个文件")
+        path_list = []
+        path_dict = {}
         for file in files:
             image_path = file._raw_paths[0]
             file_name = Path(image_path).stem
             file_suffix = file.suffix.upper()
+            time_obj = None
             if file_suffix in ['.JPG', '.PNG', '.DNG', '.HEIC']:
                 time_obj = get_exif_data(image_path)
             elif file_suffix in ['.MP4', '.MOV']:
@@ -272,9 +295,17 @@ if __name__ == "__main__":
                     # new_path = image_path
                     pass
                 else:
-                    new_image_name = f"{formatted_time}_{file.name}"
-                    new_image_path = f"{image_parent_path}\\{new_image_name}"
-                    os.rename(image_path, new_image_path)
+                    try:
+                        new_image_name = f"{formatted_time}_{file.name}"
+                        new_image_path = f"{image_parent_path}\\{new_image_name}"
+                        os.rename(image_path, new_image_path)
+                        # 存储新路径
+                        path_list.append(new_image_path)
+                        # 存储新路径对应的原始路径
+                        path_dict[new_image_path] = image_path
+                    except Exception as e:
+                        print(f"Error: {e}")
+                        print(f"移动{file_name}到新目录失败")
                     # 更新字典路径
                     if file_name in HEIC_DICT:
                         if file_suffix in ['.HEIC']:
@@ -300,7 +331,7 @@ if __name__ == "__main__":
                     # 关闭文件
                     win32file.CloseHandle(handle)
 
-                if file_name in HEIC_DICT and file_suffix in ['.MOV']:
+                if file_name in HEIC_DICT and file_suffix in ['.MOV'] and not re.match(r'^\d{4}\_(\d{2}_){5}', file.name):
                     try:
                         heic_name = HEIC_DICT[file_name]['heic_name']
                         mov_name = HEIC_DICT[file_name]['mov_name']
@@ -312,8 +343,14 @@ if __name__ == "__main__":
                                 direct_path = Path(move_path)
                                 if not direct_path.is_dir():
                                     os.makedirs(direct_path, exist_ok=True)
-                                os.rename(heic_path, f"{move_path}\\{heic_name}")
-                                os.rename(mov_path, f"{move_path}\\{mov_name}")
+                                new_heic_path = f"{move_path}\\{heic_name}"
+                                new_mov_path = f"{move_path}\\{mov_name}"
+                                os.rename(heic_path, new_heic_path)
+                                os.rename(mov_path, new_mov_path)
+                                path_list.extend([new_heic_path, new_mov_path])
+                                path_dict[new_heic_path] = heic_path
+                                path_dict[new_mov_path] = mov_path
+
                                 if not os.listdir(image_parent_path):
                                     shutil.rmtree(image_parent_path)
                                     print(f"空文件夹 {image_parent_path} 已被删除")
@@ -322,6 +359,23 @@ if __name__ == "__main__":
                         print(f"移动{file_name}到新目录失败")
             else:
                 print(f"{image_path}无拍摄日期")
+
+        new_num = count_files(path)
+        print(f"结束：完成操作后该目录下共找到{new_num}个文件")
+        if or_num == new_num:
+            print("OK：操作并未造成文件数量变动")
+        else:
+            print("ERROR：操作完成后发现文件数量变动")
+            print("正在查找丢失的源文件路径")
+            new_files = [file for file in path.rglob("*.*")]
+            for file in new_files:
+                image_path = file._raw_paths[0]
+                path_list = remove_value(path_list, image_path)
+            for item in path_list:
+                print(f"新文件{item}丢失！")
+                or_path = path_dict.get(item)
+                print(f"原始文件路径为{or_path}，请手动查找或找到副本后重新开始！")
+
 
 # 外部调用，返回拍摄日期或最早日期
 def get_time_info(lists):
