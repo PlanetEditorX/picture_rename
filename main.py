@@ -38,6 +38,11 @@ pillow_heif.register_heif_opener()
 
 # type: 0为图片,1为视频
 def get_exif_data(path, type = 0):
+    """
+    获取exif数据
+    :param path: 文件路径
+    :param type: 文件类型（0为图片，1为视频）
+    """
     global HEIC_DICT
     try:
         if type:
@@ -103,6 +108,10 @@ def get_exif_data(path, type = 0):
 
 # 查找视频最早时间
 def find_earliest_time(track):
+    """
+    查找视频最早时间
+    :param track: 视频轨道
+    """
     creation_date = getattr(track, 'file_creation_date', None)
     modification_date = getattr(track, 'file_earliest_modification_date', None)
     if creation_date:
@@ -115,6 +124,10 @@ def find_earliest_time(track):
 
 # 查找文件最早时间
 def find_earliest_time_file(file_path):
+    """
+    查找文件最早时间
+    :param file_path: 文件路径
+    """
     try:
         # 获取文件状态信息
         file_stat = os.stat(file_path)
@@ -135,6 +148,10 @@ def find_earliest_time_file(file_path):
 
 # 读取heic照片信息
 def read_heic_exif(heic_path):
+    """
+    读取heic格式图片的时间信息
+    :param heic_path: 图片路径
+    """
     # 打开 HEIC 文件
     image = PIL_Image.open(heic_path)
     exif_data = image.info["exif"]
@@ -148,7 +165,11 @@ def read_heic_exif(heic_path):
         return None
 
 # 读取png图片信息
-def read_png_exif(heic_path):
+def read_png_exif(image_path):
+    """
+    读取png格式图片的时间信息
+    :param image_path: 图片路径
+    """
     try:
         img = Image(image_path)
         load_exif = img.read_exif()
@@ -161,6 +182,10 @@ def read_png_exif(heic_path):
 
 # 读取普通照片信息
 def read_image_exif(image_path):
+    """
+    读取普通照片EXIF的时间信息
+    :param image_path: 图片路径
+    """
     try:
         image = PIL_Image.open(image_path)
         exif_data = {
@@ -178,6 +203,10 @@ def read_image_exif(image_path):
 
 # DNG格式照片
 def read_tiff_exif(image_path):
+    """
+    读取DNG格式图片的时间信息
+    :param image_path: 图片路径
+    """
     image = PIL_Image.open(image_path)
     # TAGS：用于映射图像文件的0th IFD（Image File Directory）中的EXIF标签。
     exif_data = {
@@ -189,6 +218,11 @@ def read_tiff_exif(image_path):
 
 # 修改照片exif
 def set_exif_data(image_path, new_time):
+    """
+    修改图片XML信息
+    :param image_path: 图片路径
+    :param new_time: 需要修改的时间值
+    """
     try:
         # 读取图片的EXIF数据
         exif_dict = piexif.load(image_path)
@@ -213,6 +247,11 @@ def set_exif_data(image_path, new_time):
 
 # 修改图片XML
 def set_XML_data(image_path, new_time):
+    """
+    修改图片XML信息
+    :param image_path: 图片路径
+    :param new_time: 需要修改的时间值
+    """
     try:
         img = Image(image_path)
         formatted_time = new_time.strftime('%Y:%m:%d %H:%M:%S')
@@ -239,6 +278,7 @@ def set_XML_data(image_path, new_time):
         print(f"Error: {e}")
         return None
 
+# 计算指定目录下的文件数量
 def count_files(directory):
     """
     计算指定目录下的文件数量
@@ -249,6 +289,7 @@ def count_files(directory):
         total_files += len(files)
     return total_files
 
+# 删除数组的指定值
 def remove_value(lst, value):
     """
     删除数组的指定值
@@ -379,6 +420,10 @@ if __name__ == "__main__":
 
 # 外部调用，返回拍摄日期或最早日期
 def get_time_info(lists):
+    """
+    返回拍摄日期或最早日期
+    :param lists: 需要查找的文件地址列表
+    """
     earliest_time_obj = datetime.now()
     for file_path in lists:
         file = Path(file_path)
