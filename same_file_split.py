@@ -6,6 +6,7 @@ from pathlib import Path
 import hashlib
 from datetime import datetime
 import main
+import sq
 
 # md5字典
 MD5_DICT = {}
@@ -110,9 +111,10 @@ if __name__ == "__main__":
                 if len(value) > 1:
                     earliest_time = main.get_time_info(value)
                     move_file(earliest_time, value)
+                    sq.operation(earliest_time, key, value)
                 print_progress(index, total, prefix='正在移动重复文件:', suffix='完成', decimals=2)
                 index += 1
             print_progress(total, total, prefix='正在移动重复文件:', suffix='完成', decimals=2)
-
+            sq.destory()
 
 
