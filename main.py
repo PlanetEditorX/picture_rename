@@ -319,7 +319,7 @@ if __name__ == "__main__":
             time_obj = None
             if file_suffix in ['.JPG', '.PNG', '.DNG', '.HEIC']:
                 time_obj = get_exif_data(image_path)
-            elif file_suffix in ['.MP4', '.MOV']:
+            elif file_suffix in ['.MP4', '.MOV', '.3GP']:
                 time_obj = get_exif_data(image_path, 1)
             if time_obj:
                 # ios目录格式，获取目录标识的时间
