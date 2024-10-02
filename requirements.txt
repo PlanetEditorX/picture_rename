@@ -1,0 +1,8 @@
+pywin32==306
+piexif==1.1.3
+whatimage==0.0.3
+pillow_heif==0.18.0
+ExifRead==3.0.0
+pytz==2024.2
+pymediainfo==6.1.0
+pyexiv2==2.14.0
