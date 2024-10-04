@@ -423,6 +423,9 @@ if __name__ == "__main__":
                                 os.rename(heic_path, new_heic_path)
                                 os.rename(mov_path, new_mov_path)
                                 path_list.extend([new_heic_path, new_mov_path])
+                                # 列表删除被移动的原始地址
+                                path_list.remove(heic_path)
+                                path_list.remove(mov_path)
                                 path_dict[new_heic_path] = heic_path
                                 path_dict[new_mov_path] = mov_path
 
@@ -446,10 +449,20 @@ if __name__ == "__main__":
             for file in new_files:
                 image_path = file._raw_paths[0]
                 path_list = remove_value(path_list, image_path)
+            move_nums = 0
             for item in path_list:
-                print(f"新文件{item}丢失！")
-                or_path = path_dict.get(item)
-                print(f"原始文件路径为{or_path}，请手动查找或找到副本后重新开始！")
+                if os.path.exists(item):
+                    print(f"文件{item}存在")
+                    move_nums += 1
+                else:
+                    print(f"新文件{item}丢失！")
+                    or_path = path_dict.get(item)
+                    print(f"原始文件路径为{or_path}，请手动查找或找到副本后重新开始！")
+            if or_num == new_num + move_nums:
+                print("OK：操作并未造成文件实际数量变动，源文件夹不同是因为实况照片被移动到对应文件夹中。")
+            else:
+                print("ERROR：操作完成后发现文件数量变动，且默认移动文件夹未找到对应文件，请手动查找丢失文件！！！")
+
 
 
 # 外部调用，返回拍摄日期或最早日期
