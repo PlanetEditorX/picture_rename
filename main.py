@@ -180,8 +180,10 @@ def read_png_exif(image_path):
         img = Image(image_path)
         load_exif = img.read_exif()
         if load_exif:
+            # PNG未获取到通用的拍摄日期
+            CreationTime = read_png_exif_more(image_path)
             return load_exif['Exif.Photo.DateTimeOriginal']
-        return None
+        return read_png_exif_more(image_path)
     except Exception as e:
         print(f"Warning: {image_path}默认方式未获取到时间相关数据")
         print("Trying：尝试使用其它方式读取PNG信息")
@@ -193,15 +195,17 @@ def read_png_exif_more(image_path):
     通过其它方式读取png照片信息
     :param image_path: 图片路径
     """
+    global EXIF_EMPTY
     try:
         image = PIL_Image.open(image_path)
         timetext =getattr(image, 'text' ,None)
         if timetext:
             CreationTime = timetext['Creation Time']
             return CreationTime
+        else:
+            EXIF_EMPTY.append(image_path)
         return None
     except Exception as e:
-        global EXIF_EMPTY
         print(f"Warning: {image_path}未获取到exif数据")
         EXIF_EMPTY.append(image_path)
         return None
