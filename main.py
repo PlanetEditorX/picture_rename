@@ -145,6 +145,7 @@ def find_earliest_time_file(file_path):
         else:
             # 在Unix-like系统上，st_ctime通常表示状态更改时间
             creation_time = "Creation time is not available on this platform"
+        EXIF_EMPTY.append(file_path)
         if mod_time > creation_time:
             return creation_time
         return mod_time
