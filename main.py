@@ -67,6 +67,9 @@ def get_exif_data(path, type = 0):
                         encoded_date = getattr(track, 'encoded_date', None)
                     if not encoded_date:
                         encoded_date = getattr(track, 'tagged_date', None)
+                    if not encoded_date:
+                        encoded_date = getattr(track, 'file_last_modification_date', None)
+                        return datetime.strptime(encoded_date, '%Y-%m-%d %H:%M:%S.%f UTC')
                     if encoded_date:
                         print(f"视频文件 {path} 读取到的拍摄日期为: {encoded_date}")
                         # 设置UTC时区
