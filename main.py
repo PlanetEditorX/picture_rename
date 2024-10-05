@@ -17,6 +17,7 @@ from PIL import Image as PIL_Image
 from PIL.ExifTags import TAGS
 from pymediainfo import MediaInfo
 from pyexiv2 import Image
+from PIL.PngImagePlugin import PngInfo
 
 # pip install pywin32
 # pip install piexif
@@ -305,6 +306,13 @@ def set_XML_data(image_path, new_time):
         img.modify_exif(exif_dict)
         img.modify_iptc(iptc_dict)
         img.modify_xmp(xmp_dict)
+
+        img = PIL_Image.open(image_path)
+        metadata = PngInfo()
+        for key, value in img.text.items():
+            metadata.add_text(key, value)
+        metadata.add_text('Creation Time', formatted_time)
+        img.save(image_path, pnginfo=metadata)
     except Exception as e:
         print(f"Error: {e}")
         return None
