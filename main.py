@@ -293,9 +293,6 @@ def set_XML_data(image_path, new_time):
             'Exif.Photo.DateTimeOriginal': formatted_time,
             'Exif.Photo.DateTimeDigitized': formatted_time
         }
-        iptc_dict = {
-            'Iptc.Application2.DateCreated': formatted_time
-        }
         xmp_dict = {
             'Xmp.xmp.ModifyDate': formatted_time,
             'Xmp.xmp.CreateDate': formatted_time,
@@ -304,7 +301,6 @@ def set_XML_data(image_path, new_time):
         }
         # 修改EXIF、IPTC、XMP信息
         img.modify_exif(exif_dict)
-        img.modify_iptc(iptc_dict)
         img.modify_xmp(xmp_dict)
 
         img = PIL_Image.open(image_path)
